@@ -18,6 +18,13 @@ zz -h, --help   # Show help
 - [ripgrep](https://github.com/BurntSushi/ripgrep)
 - [awk](https://www.gnu.org/software/gawk/) (usually pre-installed)
 
+## Workflow
+
+```bash
+ghq get github.com/user/project    # Clone a repo
+zz project                         # Jump to it
+```
+
 ## What it does
 
 1. Lists repositories managed by `ghq`
