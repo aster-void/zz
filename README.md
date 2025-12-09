@@ -10,6 +10,13 @@ zz <query>      # Jump to first matching repo
 zz -h, --help   # Show help
 ```
 
+## Dependencies
+
+- [ghq](https://github.com/x-motemen/ghq)
+- [fzf](https://github.com/junegunn/fzf)
+- [zellij](https://github.com/zellij-org/zellij)
+- [ripgrep](https://github.com/BurntSushi/ripgrep)
+
 ## What it does
 
 1. Lists repositories managed by `ghq`
