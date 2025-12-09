@@ -5,5 +5,8 @@ Repository navigation tool combining ghq + fzf + zellij.
 ## Structure
 
 ```
-zz.sh    # Main script
+.
+├── AGENTS.md # document for agents
+├── README.md # document for human
+└── zz.sh # Main script
 ```
