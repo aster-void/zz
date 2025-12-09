@@ -17,7 +17,7 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
 fi
 
 if [[ $# -gt 0 ]]; then
-    repo=$(ghq list | fzf --filter "$*" | head -n 1)
+    repo=$(ghq list | fzf --filter "$*" | awk 'NR==1')
     [[ -z "$repo" ]] && echo "No match found for: $*" >&2 && exit 1
 else
     repo=$(ghq list | fzf)

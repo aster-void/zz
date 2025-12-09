@@ -16,6 +16,7 @@ zz -h, --help   # Show help
 - [fzf](https://github.com/junegunn/fzf)
 - [zellij](https://github.com/zellij-org/zellij)
 - [ripgrep](https://github.com/BurntSushi/ripgrep)
+- [awk](https://www.gnu.org/software/gawk/) (usually pre-installed)
 
 ## What it does
 
