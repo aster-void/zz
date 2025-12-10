@@ -69,6 +69,8 @@ Commands:
   checkout [branch]    Select or specify branch → cd to worktree
   checkout -b <name>   Create new branch → cd to worktree
   new <name>           Alias for checkout -b
+  prune [q]            Select and remove worktree
+  prune -a             Remove all worktrees for deleted branches
   get <url>        Clone repo as bare
   query [q]        List bare repos
   list, ls             List active zellij sessions
@@ -151,6 +153,57 @@ cmd_new() {
     cmd_checkout -b "${1:-}"
 }
 
+cmd_prune() {
+    local bare_repo repo current_wt
+    bare_repo=$(get_bare_repo)
+    repo=$(get_repo_name "$bare_repo")
+    current_wt=$(pwd)
+
+    if [[ "${1:-}" == "-a" ]]; then
+        # Auto prune: delete worktrees for branches that no longer exist
+
+        git -C "$bare_repo" worktree list --porcelain | grep '^worktree' | sed 's/^worktree //' | while read -r wt_path; do
+            # Skip bare repo and current worktree
+            [[ "$wt_path" == "$bare_repo" ]] && continue
+            [[ "$wt_path" == "$current_wt" ]] && continue
+
+            local branch_name
+            branch_name=$(basename "$wt_path")
+
+            # Check if branch still exists (local or remote)
+            if ! git -C "$bare_repo" show-ref --verify --quiet "refs/heads/$branch_name" && \
+               ! git -C "$bare_repo" show-ref --verify --quiet "refs/remotes/origin/$branch_name"; then
+                echo "Pruning: $branch_name (branch no longer exists)"
+                git -C "$bare_repo" worktree remove --force "$wt_path" 2>/dev/null || rm -rf "$wt_path"
+            fi
+        done
+
+        # Also run git's built-in prune for stale worktree metadata
+        git -C "$bare_repo" worktree prune
+        echo "Pruning complete."
+    else
+        # Interactive: select worktree to delete
+        local worktrees selection worktree_path
+        worktrees=$(git -C "$bare_repo" worktree list --porcelain | grep '^worktree' | sed 's/^worktree //' | while read -r wt; do
+            # Skip bare repo and current worktree
+            [[ "$wt" == "$bare_repo" ]] && continue
+            [[ "$wt" == "$current_wt" ]] && continue
+            basename "$wt"
+        done)
+
+        [[ -z "$worktrees" ]] && die "No worktrees found to prune."
+
+        selection=$(fzf_select "$worktrees" "${1:-}") || exit 1
+        [[ -z "$selection" ]] && die "No worktree selected"
+
+        worktree_path="$ZZ_WORKTREE_BASE/$repo/$selection"
+        echo "Removing worktree: $selection"
+        git -C "$bare_repo" worktree remove --force "$worktree_path" 2>/dev/null || rm -rf "$worktree_path"
+        git -C "$bare_repo" worktree prune
+        echo "Done."
+    fi
+}
+
 cmd_get() {
     [[ -z "${1:-}" ]] && die "Usage: zz get <repo-url>"
     local url="$1"
@@ -212,6 +265,7 @@ case "${1:-}" in
     -h|--help) show_help ;;
     checkout)  shift; cmd_checkout "$@" ;;
     new)       shift; cmd_new "${1:-}" ;;
+    prune)     shift; cmd_prune "${1:-}" ;;
     get)       shift; cmd_get "${1:-}" ;;
     query)     shift; cmd_query "${1:-}" ;;
     list|ls)           cmd_ls ;;
