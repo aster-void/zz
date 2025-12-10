@@ -84,7 +84,27 @@ cmd_default() {
 }
 
 cmd_ls() {
-    list_zz_sessions
+    local repos sessions_full repo session_name
+    local green='\033[32m' red='\033[31m' reset='\033[0m'
+
+    repos=$(ghq list) || die "ghq list failed"
+    [[ -z "$repos" ]] && die "No repositories found."
+
+    sessions_full=$(zellij list-sessions -n 2>/dev/null | grep '^zz:' || true)
+
+    while read -r repo; do
+        session_name="zz:${repo//\//.}"
+
+        if [[ -z "$sessions_full" ]]; then
+            echo "  $repo"
+        elif echo "$sessions_full" | grep -q "^$session_name .*EXITED"; then
+            echo -e "${red}○${reset} $repo"
+        elif echo "$sessions_full" | grep -q "^$session_name "; then
+            echo -e "${green}●${reset} $repo"
+        else
+            echo "  $repo"
+        fi
+    done <<< "$repos"
 }
 
 cmd_delete() {
