@@ -5,15 +5,16 @@ Worktree-oriented workflow with zellij sessions.
 ## Usage
 
 ```bash
-zz [repo] [branch]   # Select repo → zellij session → branch worktree
-zz checkout [q]      # Select worktree or remote branch → cd
-zz new <name>        # Create new branch worktree → cd
-zz get <url>         # Clone repo as bare
-zz query [q]         # List bare repos
-zz list, ls          # List active zellij sessions
-zz delete, d [q]     # Delete zellij session
-zz delete-all, da    # Delete all zellij sessions
-zz -h, --help        # Show help
+zz [repo] [branch]      # Select repo → zellij session → branch worktree
+zz checkout [branch]    # Select or specify branch → new tab
+zz checkout -b <name>   # Create new branch → new tab
+zz new <name>           # Alias for checkout -b
+zz get <url>            # Clone repo as bare
+zz query [q]            # List bare repos
+zz list, ls             # List active zellij sessions
+zz delete, d [q]        # Delete zellij session
+zz delete-all, da       # Delete all zellij sessions
+zz -h, --help           # Show help
 ```
 
 ## Dependencies
@@ -28,8 +29,8 @@ zz -h, --help        # Show help
 ```bash
 zz get https://github.com/user/project  # Clone as bare repo
 zz project                              # Select repo → zellij session
-zz checkout feature                     # Switch to branch (in new tab)
-zz new my-feature                       # Create new branch
+zz checkout feature                     # Switch to existing branch (new tab)
+zz checkout -b my-feature               # Create new branch (new tab)
 ```
 
 ## Configuration
