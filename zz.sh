@@ -66,8 +66,9 @@ Worktree-oriented workflow with zellij sessions
 
 Commands:
   [repo] [branch]  Select repo → zellij session → branch worktree
-  checkout [q]     Select worktree or remote branch → cd
-  new <name>       Create new branch worktree → cd
+  checkout [branch]    Select or specify branch → cd to worktree
+  checkout -b <name>   Create new branch → cd to worktree
+  new <name>           Alias for checkout -b
   get <url>        Clone repo as bare
   query [q]        List bare repos
   list, ls             List active zellij sessions
@@ -110,34 +111,44 @@ cmd_default() {
 }
 
 cmd_checkout() {
-    local bare_repo repo branch worktree_path selection
+    local bare_repo repo branch worktree_path new_branch=""
     bare_repo=$(get_bare_repo)
     repo=$(get_repo_name "$bare_repo")
 
-    local worktrees remotes
-    worktrees=$(git -C "$bare_repo" worktree list --porcelain | grep '^branch' | sed 's|^branch refs/heads/||; s/^/wt: /')
-    remotes=$(git -C "$bare_repo" branch -r | grep -v HEAD | sed 's/^[[:space:]]*/remote: /')
-
-    selection=$(fzf_select "$(printf '%s\n%s' "$worktrees" "$remotes" | grep -v '^$')" "${1:-}") || exit 1
-    [[ -z "$selection" ]] && die "No match found for: ${1:-}"
-
-    branch="${selection#wt: }"
-    branch="${branch#remote: }"
-    branch="${branch#origin/}"
+    # Parse -b flag
+    if [[ "${1:-}" == "-b" ]]; then
+        new_branch=1
+        shift
+        [[ -z "${1:-}" ]] && die "Usage: zz checkout -b <branch-name>"
+        branch="$1"
+    elif [[ -n "${1:-}" ]]; then
+        branch="$1"
+        # Verify branch exists
+        if ! git -C "$bare_repo" show-ref --verify --quiet "refs/heads/$branch" && \
+           ! git -C "$bare_repo" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+            die "Branch '$branch' not found. Use 'zz checkout -b $branch' to create it."
+        fi
+    else
+        # fzf select from local + remote branches
+        local branches
+        branches=$(git -C "$bare_repo" branch -a --format='%(refname:short)' | sed 's|^origin/||' | sort -u | grep -v '^HEAD$')
+        branch=$(fzf_select "$branches" "") || exit 1
+        [[ -z "$branch" ]] && die "No branch selected"
+    fi
 
     worktree_path="$ZZ_WORKTREE_BASE/$repo/$branch"
-    ensure_worktree "$bare_repo" "$branch" "$worktree_path"
-    cd "$worktree_path" && exec "$SHELL"
+    ensure_worktree "$bare_repo" "$branch" "$worktree_path" "$new_branch"
+
+    if [[ -n "${ZELLIJ:-}" ]]; then
+        zellij action new-tab --cwd "$worktree_path" --name "$branch"
+    else
+        cd "$worktree_path" && exec "$SHELL"
+    fi
 }
 
 cmd_new() {
-    [[ -z "${1:-}" ]] && die "Usage: zz new <branch-name>"
-    local bare_repo repo worktree_path
-    bare_repo=$(get_bare_repo)
-    repo=$(get_repo_name "$bare_repo")
-    worktree_path="$ZZ_WORKTREE_BASE/$repo/$1"
-    ensure_worktree "$bare_repo" "$1" "$worktree_path" "new"
-    cd "$worktree_path" && exec "$SHELL"
+    # Alias for: zz checkout -b <branch>
+    cmd_checkout -b "${1:-}"
 }
 
 cmd_get() {
@@ -199,7 +210,7 @@ cmd_delete_all() {
 
 case "${1:-}" in
     -h|--help) show_help ;;
-    checkout)  shift; cmd_checkout "${1:-}" ;;
+    checkout)  shift; cmd_checkout "$@" ;;
     new)       shift; cmd_new "${1:-}" ;;
     get)       shift; cmd_get "${1:-}" ;;
     query)     shift; cmd_query "${1:-}" ;;
