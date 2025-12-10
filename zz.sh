@@ -168,7 +168,7 @@ cmd_query() {
 }
 
 cmd_ls() {
-    zellij list-sessions -s 2>/dev/null | grep '^zz:' | sed 's/^zz://'
+    zellij list-sessions -s 2>/dev/null | grep '^zz:'
 }
 
 cmd_delete() {
@@ -179,7 +179,7 @@ cmd_delete() {
     session=$(fzf_select "$sessions" "${1:-}") || exit 1
     [[ -z "$session" ]] && die "No match found for: ${1:-}"
 
-    zellij kill-session "zz:$session"
+    zellij kill-session "$session"
     echo "Deleted session: $session"
 }
 
@@ -189,7 +189,7 @@ cmd_delete_all() {
     [[ -z "$sessions" ]] && die "No zz sessions found."
 
     echo "$sessions" | while read -r session; do
-        zellij kill-session "zz:$session"
+        zellij kill-session "$session"
         echo "Deleted session: $session"
     done
 }
