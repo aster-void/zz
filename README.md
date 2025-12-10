@@ -10,6 +10,9 @@ zz checkout [q]      # Select worktree or remote branch → cd
 zz new <name>        # Create new branch worktree → cd
 zz get <url>         # Clone repo as bare
 zz query [q]         # List bare repos
+zz list, ls          # List active zellij sessions
+zz delete, d [q]     # Delete zellij session
+zz delete-all, da    # Delete all zellij sessions
 zz -h, --help        # Show help
 ```
 
@@ -19,13 +22,14 @@ zz -h, --help        # Show help
 - [fd](https://github.com/sharkdp/fd)
 - [zellij](https://github.com/zellij-org/zellij)
 - [ripgrep](https://github.com/BurntSushi/ripgrep)
-- [awk](https://www.gnu.org/software/gawk/) (usually pre-installed)
 
 ## Workflow
 
 ```bash
-ghq get github.com/user/project    # Clone a repo
-zz project                         # Jump to it
+zz get https://github.com/user/project  # Clone as bare repo
+zz project                              # Select repo → zellij session
+zz checkout feature                     # Switch to branch (in new tab)
+zz new my-feature                       # Create new branch
 ```
 
 ## Configuration
@@ -41,5 +45,5 @@ Environment variables:
 
 1. Bare repos are stored in `ZZ_BARE_REPOS_ROOT`
 2. Worktrees are created in `ZZ_WORKTREE_BASE/{repo}/{branch}`
-3. Each repo gets one zellij session (named `github.com.user.repo`)
+3. Each repo gets one zellij session (named `zz:github.com.user.repo`)
 4. Switch branches by opening new tabs and using `zz checkout`
