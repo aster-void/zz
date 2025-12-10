@@ -73,8 +73,8 @@ cmd_default() {
     repos=$(ghq list) || die "ghq list failed"
     [[ -z "$repos" ]] && die "No repositories found. Use 'ghq get <url>' to clone one."
 
-    repo=$(fzf_select "$repos" "${1:-}") || exit 1
-    [[ -z "$repo" ]] && die "No match found for: ${1:-}"
+    repo=$(fzf_select "$repos" "$*") || exit 1
+    [[ -z "$repo" ]] && die "No match found for: $*"
 
     repo_path=$(ghq root)/"$repo"
     session_name="zz:${repo//\//.}"
@@ -121,5 +121,5 @@ case "${1:-}" in
     list|ls)       cmd_ls ;;
     delete|d)      shift; cmd_delete "${1:-}" ;;
     delete-all|da) cmd_delete_all ;;
-    *)             cmd_default "${1:-}" ;;
+    *)             cmd_default "$@" ;;
 esac
