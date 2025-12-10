@@ -84,8 +84,8 @@ cmd_default() {
 }
 
 cmd_ls() {
-    local repos sessions_full repo session_name client_count
-    local green='\033[32m' red='\033[31m' magenta='\033[35m' reset='\033[0m'
+    local repos sessions_full repo session_name
+    local green='\033[32m' red='\033[31m' reset='\033[0m'
 
     repos=$(ghq list) || die "ghq list failed"
     [[ -z "$repos" ]] && die "No repositories found."
@@ -100,12 +100,7 @@ cmd_ls() {
         elif echo "$sessions_full" | grep -q "^$session_name .*EXITED"; then
             echo -e "${red}○${reset} $repo"
         elif echo "$sessions_full" | grep -q "^$session_name "; then
-            client_count=$(zellij -s "$session_name" action list-clients 2>/dev/null | tail -n +2 | wc -l)
-            if [[ "$client_count" -gt 0 ]]; then
-                echo -e "${green}●${reset} $repo ${magenta}(${client_count})${reset}"
-            else
-                echo -e "${green}●${reset} $repo"
-            fi
+            echo -e "${green}●${reset} $repo"
         else
             echo "  $repo"
         fi
