@@ -50,18 +50,19 @@ Usage: zz [command] [args]
 ghq + zellij with fuzzy finder
 
 Commands:
-  [query]        Select repo from ghq list → zellij session
-  get <url>      Clone repo (alias for ghq get)
-  list, ls       List active zz sessions
-  delete, d [q]  Delete zellij session
-  delete-all, da Delete all zz sessions
-  -h, --help     Show this help
+  [query]           Select repo from ghq list → zellij session
+  get <url>         Clone repo (alias for ghq get)
+  list, ls          List active zz sessions
+  delete, d [q]     Delete zellij session
+  delete -a, --all  Delete all zz sessions
+  -h, --help        Show this help
 
 Examples:
   zz             # fzf select repo → zellij session
   zz myrepo      # filter repos by "myrepo"
   zz ls          # list zz sessions
   zz d myrepo    # delete session matching "myrepo"
+  zz d -a        # delete all zz sessions
 EOF
 }
 
@@ -87,28 +88,31 @@ cmd_ls() {
 }
 
 cmd_delete() {
-    local sessions session
+    local sessions session delete_all=false
+
+    # Parse flags
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -a|--all) delete_all=true; shift ;;
+            *) break ;;
+        esac
+    done
 
     sessions=$(list_zz_sessions)
     [[ -z "$sessions" ]] && die "No zz sessions found."
 
-    session=$(fzf_select "$sessions" "${1:-}") || exit 1
-    [[ -z "$session" ]] && die "No match found for: ${1:-}"
+    if [[ "$delete_all" == true ]]; then
+        echo "$sessions" | while read -r session; do
+            zellij kill-session "$session"
+            echo "Deleted session: $session"
+        done
+    else
+        session=$(fzf_select "$sessions" "${1:-}") || exit 1
+        [[ -z "$session" ]] && die "No match found for: ${1:-}"
 
-    zellij kill-session "$session"
-    echo "Deleted session: $session"
-}
-
-cmd_delete_all() {
-    local sessions
-
-    sessions=$(list_zz_sessions)
-    [[ -z "$sessions" ]] && die "No zz sessions found."
-
-    echo "$sessions" | while read -r session; do
         zellij kill-session "$session"
         echo "Deleted session: $session"
-    done
+    fi
 }
 
 #=============================================================================
@@ -119,7 +123,6 @@ case "${1:-}" in
     -h|--help)     cmd_help ;;
     get)           shift; ghq get "$@" ;;
     list|ls)       cmd_ls ;;
-    delete|d)      shift; cmd_delete "${1:-}" ;;
-    delete-all|da) cmd_delete_all ;;
+    delete|d)      shift; cmd_delete "$@" ;;
     *)             cmd_default "$@" ;;
 esac
