@@ -20,7 +20,7 @@ get_bare_repo() {
 }
 
 # Get repo name relative to ghq root
-get_repo_name() { echo "${1#$ZZ_BARE_REPOS_ROOT/}"; }
+get_repo_name() { echo "${1#"$ZZ_BARE_REPOS_ROOT"/}"; }
 
 # Get default branch
 get_default_branch() {
@@ -30,8 +30,9 @@ get_default_branch() {
 # List bare repos under bare repos root
 list_bare_repos() {
     fd -t f '^HEAD$' "$ZZ_BARE_REPOS_ROOT" --max-depth 5 -E 'logs' 2>/dev/null | while read -r f; do
-        local dir=$(dirname "$f")
-        git -C "$dir" rev-parse --is-bare-repository 2>/dev/null | grep -q true && echo "${dir#$ZZ_BARE_REPOS_ROOT/}"
+        local dir
+        dir=$(dirname "$f")
+        git -C "$dir" rev-parse --is-bare-repository 2>/dev/null | grep -q true && echo "${dir#"$ZZ_BARE_REPOS_ROOT"/}"
     done
 }
 
@@ -113,8 +114,9 @@ cmd_checkout() {
     bare_repo=$(get_bare_repo)
     repo=$(get_repo_name "$bare_repo")
 
-    local worktrees=$(git -C "$bare_repo" worktree list --porcelain | grep '^branch' | sed 's|^branch refs/heads/||; s/^/wt: /')
-    local remotes=$(git -C "$bare_repo" branch -r | grep -v HEAD | sed 's/^[[:space:]]*/remote: /')
+    local worktrees remotes
+    worktrees=$(git -C "$bare_repo" worktree list --porcelain | grep '^branch' | sed 's|^branch refs/heads/||; s/^/wt: /')
+    remotes=$(git -C "$bare_repo" branch -r | grep -v HEAD | sed 's/^[[:space:]]*/remote: /')
 
     selection=$(fzf_select "$(printf '%s\n%s' "$worktrees" "$remotes" | grep -v '^$')" "${1:-}") || exit 1
     [[ -z "$selection" ]] && die "No match found for: ${1:-}"
@@ -158,7 +160,8 @@ cmd_get() {
 }
 
 cmd_query() {
-    local repos=$(list_bare_repos)
+    local repos
+    repos=$(list_bare_repos)
     [[ -z "$repos" ]] && die "No bare repositories found."
     if [[ -n "${1:-}" ]]; then
         echo "$repos" | fzf --filter "$1"
