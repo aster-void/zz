@@ -154,6 +154,7 @@ cmd_get() {
     local dest="$ZZ_BARE_REPOS_ROOT/$repo_path"
     mkdir -p "$(dirname "$dest")"
     git clone --bare "$url" "$dest"
+    git -C "$dest" remote set-head origin --auto
 }
 
 cmd_query() {
