@@ -51,6 +51,7 @@ ghq + zellij with fuzzy finder
 
 Commands:
   [query]        Select repo from ghq list → zellij session
+  get <url>      Clone repo (alias for ghq get)
   list, ls       List active zz sessions
   delete, d [q]  Delete zellij session
   delete-all, da Delete all zz sessions
@@ -116,6 +117,7 @@ cmd_delete_all() {
 
 case "${1:-}" in
     -h|--help)     cmd_help ;;
+    get)           shift; ghq get "$@" ;;
     list|ls)       cmd_ls ;;
     delete|d)      shift; cmd_delete "${1:-}" ;;
     delete-all|da) cmd_delete_all ;;

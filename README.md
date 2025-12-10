@@ -6,6 +6,7 @@ ghq + zellij with fuzzy finder
 
 ```bash
 zz [query]        # Select repo from ghq list → zellij session
+zz get <url>      # Clone repo (alias for ghq get)
 zz list, ls       # List active zz sessions
 zz delete, d [q]  # Delete zellij session
 zz delete-all, da # Delete all zz sessions
@@ -21,7 +22,7 @@ zz -h, --help     # Show help
 ## Examples
 
 ```bash
-ghq get https://github.com/user/project  # Clone repo with ghq
+zz get https://github.com/user/project   # Clone repo
 zz                                       # Select repo → zellij session
 zz project                               # Filter by "project"
 zz ls                                    # List zz sessions
