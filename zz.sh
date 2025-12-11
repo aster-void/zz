@@ -55,12 +55,16 @@ Commands:
   list, ls          List active zz sessions
   delete, d [q]     Delete zellij session
   delete -a, --all  Delete all zz sessions
+
+Flags:
+  -s, --session     Select from existing zz sessions only
   -h, --help        Show this help
 
 Examples:
   zz             # fzf select repo → zellij session
   zz myrepo      # filter repos by "myrepo"
   zz ls          # list zz sessions
+  zz -s          # select from existing sessions
   zz d myrepo    # delete session matching "myrepo"
   zz d -a        # delete all zz sessions
 EOF
@@ -69,18 +73,37 @@ EOF
 cmd_default() {
     [[ -n "${ZELLIJ:-}" ]] && die "cannot switch sessions from inside zellij. Detach first with Ctrl+o d"
 
-    local repos repo repo_path session_name
+    local repos repo repo_path session_name session_only=false
 
-    repos=$(ghq list) || die "ghq list failed"
-    [[ -z "$repos" ]] && die "No repositories found. Use 'ghq get <url>' to clone one."
+    # Parse flags
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -s|--session) session_only=true; shift ;;
+            *) break ;;
+        esac
+    done
 
-    repo=$(fzf_select "$repos" "$*") || exit 1
-    [[ -z "$repo" ]] && die "No match found for: $*"
+    if [[ "$session_only" == true ]]; then
+        local sessions session
+        sessions=$(list_zz_sessions)
+        [[ -z "$sessions" ]] && die "No zz sessions found."
 
-    repo_path=$(ghq root)/"$repo"
-    session_name="zz:${repo//\//.}"
+        session=$(fzf_select "$sessions" "$*") || exit 1
+        [[ -z "$session" ]] && die "No match found for: $*"
 
-    open_zellij_session "$session_name" "$repo_path"
+        zellij attach "$session"
+    else
+        repos=$(ghq list) || die "ghq list failed"
+        [[ -z "$repos" ]] && die "No repositories found. Use 'ghq get <url>' to clone one."
+
+        repo=$(fzf_select "$repos" "$*") || exit 1
+        [[ -z "$repo" ]] && die "No match found for: $*"
+
+        repo_path=$(ghq root)/"$repo"
+        session_name="zz:${repo//\//.}"
+
+        open_zellij_session "$session_name" "$repo_path"
+    fi
 }
 
 cmd_ls() {
@@ -139,8 +162,23 @@ cmd_delete() {
 # Main
 #=============================================================================
 
+# Global flag parsing
+show_help=false
+args=()
+for arg in "$@"; do
+    case "$arg" in
+        -h|--help) show_help=true ;;
+        *) args+=("$arg") ;;
+    esac
+done
+set -- "${args[@]+"${args[@]}"}"
+
+if [[ "$show_help" == true ]]; then
+    cmd_help
+    exit 0
+fi
+
 case "${1:-}" in
-    -h|--help)     cmd_help ;;
     get)           shift; ghq get "$@" ;;
     list|ls)       cmd_ls ;;
     delete|d)      shift; cmd_delete "$@" ;;
