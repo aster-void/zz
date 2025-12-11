@@ -89,7 +89,7 @@ cmd_default() {
         [[ -z "$repos" ]] && die "No repositories found. Use 'ghq get <url>' to clone one."
 
         repo=$(fzf_select "$repos" "$*") || exit 1
-        [[ -z "$repo" ]] && die "No match found for: $*"
+        [[ -z "$repo" ]] && die "Repository not found: $*"
 
         repo_path=$(ghq root)/"$repo"
         session_name="zz:${repo//\//.}"
