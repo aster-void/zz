@@ -151,13 +151,20 @@ show_help=false
 session_only=false
 delete_all=false
 args=()
+parse_flags=true
 for arg in "$@"; do
-    case "$arg" in
-        -h|--help) show_help=true ;;
-        -s|--session) session_only=true ;;
-        -a|--all) delete_all=true ;;
-        *) args+=("$arg") ;;
-    esac
+    if [[ "$parse_flags" == true ]]; then
+        case "$arg" in
+            --) parse_flags=false ;;
+            -h|--help) show_help=true ;;
+            -s|--session) session_only=true ;;
+            -a|--all) delete_all=true ;;
+            -*) die "Unknown flag: $arg" ;;
+            *) args+=("$arg") ;;
+        esac
+    else
+        args+=("$arg")
+    fi
 done
 set -- "${args[@]+"${args[@]}"}"
 
