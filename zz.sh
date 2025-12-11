@@ -73,15 +73,7 @@ EOF
 cmd_default() {
     [[ -n "${ZELLIJ:-}" ]] && die "cannot switch sessions from inside zellij. Detach first with Ctrl+o d"
 
-    local repos repo repo_path session_name session_only=false
-
-    # Parse flags
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            -s|--session) session_only=true; shift ;;
-            *) break ;;
-        esac
-    done
+    local repos repo repo_path session_name
 
     if [[ "$session_only" == true ]]; then
         local sessions session
@@ -131,15 +123,7 @@ cmd_ls() {
 }
 
 cmd_delete() {
-    local sessions session delete_all=false
-
-    # Parse flags
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            -a|--all) delete_all=true; shift ;;
-            *) break ;;
-        esac
-    done
+    local sessions session
 
     sessions=$(list_zz_sessions)
     [[ -z "$sessions" ]] && die "No zz sessions found."
@@ -164,10 +148,14 @@ cmd_delete() {
 
 # Global flag parsing
 show_help=false
+session_only=false
+delete_all=false
 args=()
 for arg in "$@"; do
     case "$arg" in
         -h|--help) show_help=true ;;
+        -s|--session) session_only=true ;;
+        -a|--all) delete_all=true ;;
         *) args+=("$arg") ;;
     esac
 done
