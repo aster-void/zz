@@ -29,10 +29,12 @@ export PATH="$PATH:$(ghq root)/github.com/aster-void/zz"
 
 ```bash
 zz [query...]     # Select repo → open/attach zellij session
+zz -s, --session  # Select from existing sessions only
 zz get <url>      # Clone repo (alias for ghq get)
-zz list, ls       # List active zz sessions
+zz list, ls       # List repos with session status
+zz ls -s          # List existing sessions only
 zz delete, d [q]  # Delete zellij session
-zz delete-all, da # Delete all zz sessions
+zz d -a, --all    # Delete all zz sessions
 zz -h, --help     # Show help
 ```
 
@@ -58,14 +60,20 @@ zz project
 # Filter with multiple terms
 zz user project
 
-# List all zz-managed sessions
+# List all repos with session status
 zz list
+
+# List existing sessions only
+zz ls -s
+
+# Select from existing sessions
+zz -s
 
 # Delete a session
 zz delete project
 
 # Delete all zz sessions
-zz delete-all
+zz d -a
 ```
 
 ## Session Naming

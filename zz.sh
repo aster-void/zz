@@ -52,7 +52,7 @@ ghq + zellij with fuzzy finder
 Commands:
   [query]           Select repo from ghq list → zellij session
   get <url>         Clone repo (alias for ghq get)
-  list, ls          List active zz sessions
+  list, ls [-s]     List repos (or sessions only with -s)
   delete, d [q]     Delete zellij session
   delete -a, --all  Delete all zz sessions
 
@@ -63,7 +63,8 @@ Flags:
 Examples:
   zz             # fzf select repo → zellij session
   zz myrepo      # filter repos by "myrepo"
-  zz ls          # list zz sessions
+  zz ls          # list all repos with session status
+  zz ls -s       # list existing sessions only
   zz -s          # select from existing sessions
   zz d myrepo    # delete session matching "myrepo"
   zz d -a        # delete all zz sessions
@@ -99,27 +100,41 @@ cmd_default() {
 }
 
 cmd_ls() {
-    local repos sessions_full repo session_name
     local green='\033[32m' red='\033[31m' reset='\033[0m'
-
-    repos=$(ghq list) || die "ghq list failed"
-    [[ -z "$repos" ]] && die "No repositories found."
+    local sessions_full repo session_name
 
     sessions_full=$(zellij list-sessions -n 2>/dev/null | grep '^zz:' || true)
 
-    while read -r repo; do
-        session_name="zz:${repo//\//.}"
+    if [[ "$session_only" == true ]]; then
+        [[ -z "$sessions_full" ]] && die "No zz sessions found."
+        while read -r line; do
+            session_name=${line%% *}
+            repo=${session_name#zz:}
+            repo=${repo//.//}
+            if echo "$line" | grep -q 'EXITED'; then
+                echo -e "${red}○${reset} $repo"
+            else
+                echo -e "${green}●${reset} $repo"
+            fi
+        done <<< "$sessions_full"
+    else
+        local repos
+        repos=$(ghq list) || die "ghq list failed"
+        [[ -z "$repos" ]] && die "No repositories found."
 
-        if [[ -z "$sessions_full" ]]; then
-            echo "  $repo"
-        elif echo "$sessions_full" | grep -q "^$session_name .*EXITED"; then
-            echo -e "${red}○${reset} $repo"
-        elif echo "$sessions_full" | grep -q "^$session_name "; then
-            echo -e "${green}●${reset} $repo"
-        else
-            echo "  $repo"
-        fi
-    done <<< "$repos"
+        while read -r repo; do
+            session_name="zz:${repo//\//.}"
+            if [[ -z "$sessions_full" ]]; then
+                echo "  $repo"
+            elif echo "$sessions_full" | grep -q "^$session_name .*EXITED"; then
+                echo -e "${red}○${reset} $repo"
+            elif echo "$sessions_full" | grep -q "^$session_name "; then
+                echo -e "${green}●${reset} $repo"
+            else
+                echo "  $repo"
+            fi
+        done <<< "$repos"
+    fi
 }
 
 cmd_delete() {
