@@ -22,6 +22,38 @@ register_repos_to_zoxide() {
     done <<< "$repos"
 }
 
+select_repo_interactive() {
+    local session_only="$1"
+    shift
+
+    local ghq_root repo_path
+    ghq_root=$(ghq root)
+
+    if [[ "$session_only" == true ]]; then
+        # Get existing sessions and register their paths to zoxide
+        local sessions repo_name
+        sessions=$(list_zz_sessions)
+        [[ -z "$sessions" ]] && die "No zz sessions found."
+
+        # Convert session names back to paths and register to zoxide
+        while read -r session; do
+            # zz:github.com.user.repo -> github.com/user/repo
+            repo_name=${session#zz:}
+            repo_name=${repo_name//.//}
+            zoxide add "$ghq_root/$repo_name"
+        done <<< "$sessions"
+    else
+        # Register all ghq repos to zoxide
+        register_repos_to_zoxide || die "Failed to register repositories"
+    fi
+
+    # Use zi (zoxide interactive) to select repo
+    repo_path=$(zi "$@") || die "No repository selected"
+    [[ -z "$repo_path" ]] && die "No repository selected"
+
+    echo "$repo_path"
+}
+
 #=============================================================================
 # Zellij helpers
 #=============================================================================
@@ -52,6 +84,7 @@ ghq + zellij + zoxide session manager
 
 Commands:
   [query]           Select repo with zoxide (frecency-based) → zellij session
+  query [q]         Dry-run: show selected repo path without opening session
   get <url>         Clone repo (alias for ghq get)
   list, ls [-s]     List repos (or sessions only with -s)
   delete, d [q]     Delete zellij session
@@ -64,6 +97,8 @@ Flags:
 Examples:
   zz             # interactive select repo (zoxide + fzf) → zellij session
   zz myrepo      # filter repos by "myrepo"
+  zz query       # dry-run: show selected path without opening
+  zz -s query    # dry-run: select from existing sessions only
   zz ls          # list all repos with session status
   zz ls -s       # list existing sessions only
   zz -s          # select from existing sessions
@@ -72,36 +107,21 @@ Examples:
 EOF
 }
 
+cmd_query() {
+    # Dry-run: just show the selected repo path
+    select_repo_interactive "$session_only" "$@"
+}
+
 cmd_default() {
     [[ -n "${ZELLIJ:-}" ]] && die "cannot switch sessions from inside zellij. Detach first with Ctrl+o d"
 
     local repo_path session_name ghq_root repo_name
 
-    ghq_root=$(ghq root)
-
-    if [[ "$session_only" == true ]]; then
-        # Get existing sessions and register their paths to zoxide
-        local sessions
-        sessions=$(list_zz_sessions)
-        [[ -z "$sessions" ]] && die "No zz sessions found."
-
-        # Convert session names back to paths and register to zoxide
-        while read -r session; do
-            # zz:github.com.user.repo -> github.com/user/repo
-            repo_name=${session#zz:}
-            repo_name=${repo_name//.//}
-            zoxide add "$ghq_root/$repo_name"
-        done <<< "$sessions"
-    else
-        # Register all ghq repos to zoxide
-        register_repos_to_zoxide || die "Failed to register repositories"
-    fi
-
-    # Use zi (zoxide interactive) to select repo
-    repo_path=$(zi "$@") || die "No repository selected"
-    [[ -z "$repo_path" ]] && die "No repository selected"
+    # Use shared selection logic
+    repo_path=$(select_repo_interactive "$session_only" "$@")
 
     # Extract repo name from path for session naming
+    ghq_root=$(ghq root)
     repo_name=${repo_path#"$ghq_root"/}
     session_name="zz:${repo_name//\//.}"
 
@@ -158,20 +178,11 @@ cmd_delete() {
             echo "Deleted session: $session"
         done
     else
-        ghq_root=$(ghq root)
-
-        # Convert session names back to paths and register to zoxide
-        while read -r session; do
-            repo_name=${session#zz:}
-            repo_name=${repo_name//.//}
-            zoxide add "$ghq_root/$repo_name"
-        done <<< "$sessions"
-
-        # Use zi (zoxide interactive) to select repo
-        repo_path=$(zi "${1:-}") || die "No repository selected"
-        [[ -z "$repo_path" ]] && die "No repository selected"
+        # Use shared selection logic (always session_only for delete)
+        repo_path=$(select_repo_interactive true "$@")
 
         # Extract repo name from path for session naming
+        ghq_root=$(ghq root)
         repo_name=${repo_path#"$ghq_root"/}
         session_name="zz:${repo_name//\//.}"
 
@@ -213,6 +224,7 @@ fi
 
 case "${1:-}" in
     get)           shift; ghq get "$@" ;;
+    query)         shift; cmd_query "$@" ;;
     list|ls)       cmd_ls ;;
     delete|d)      shift; cmd_delete "$@" ;;
     *)             cmd_default "$@" ;;
