@@ -1,13 +1,14 @@
 # zz
 
-Zellij session manager for ghq repositories.
+Zellij session manager for ghq repositories with smart frecency-based scoring.
 
-Select a repository with fzf, and zz opens (or attaches to) a dedicated zellij session for it.
+Select a repository interactively, and zz opens (or attaches to) a dedicated zellij session for it.
 
 ## Features
 
 - **One repo = One session**: Each repository gets its own zellij session
-- **Fuzzy selection**: Use fzf to quickly find repositories
+- **Smart scoring**: Frequently and recently used repos appear first (zoxide)
+- **Interactive selection**: Fuzzy finder powered by fzf
 - **Session persistence**: Reattach to existing sessions seamlessly
 - **ghq integration**: Leverage ghq's organized repository structure
 
@@ -22,7 +23,8 @@ export PATH="$PATH:$(ghq root)/github.com/aster-void/zz"
 ## Dependencies
 
 - [ghq](https://github.com/x-motemen/ghq) - Repository manager
-- [fzf](https://github.com/junegunn/fzf) - Fuzzy finder
+- [zoxide](https://github.com/ajeetdsouza/zoxide) - Smart directory jumping with frecency
+- [fzf](https://github.com/junegunn/fzf) - Fuzzy finder (used by zoxide's interactive mode)
 - [zellij](https://github.com/zellij-org/zellij) - Terminal multiplexer
 
 ## Usage
@@ -40,10 +42,11 @@ zz -h, --help     # Show help
 
 ## How It Works
 
-1. `zz` lists repositories via `ghq list`
-2. You select one with fzf (or filter with query args)
-3. zz creates/attaches a zellij session named `zz:{owner}.{repo}`
-4. The session's working directory is set to the repository
+1. `zz` registers all ghq repositories to zoxide's database
+2. You select a repository using `zi` (zoxide's interactive selector with fzf)
+3. Frequently/recently used repos appear first (smart frecency scoring)
+4. zz creates/attaches a zellij session named `zz:{owner}.{repo}`
+5. The session's working directory is set to the repository
 
 ## Examples
 
@@ -51,13 +54,13 @@ zz -h, --help     # Show help
 # Clone a new repository
 zz get https://github.com/user/project
 
-# Open fzf to select a repo
+# Interactive repo selection (frecency-sorted)
 zz
 
-# Filter repos containing "project"
+# Quick jump to repos matching "project"
 zz project
 
-# Filter with multiple terms
+# Match with multiple terms
 zz user project
 
 # List all repos with session status
