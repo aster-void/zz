@@ -12,13 +12,14 @@ die() {
     exit 1
 }
 
-fzf_select() {
-    local input="$1" query="${2:-}"
-    if [[ -n "$query" ]]; then
-        echo "$input" | fzf --filter "$query" | head -n 1
-    else
-        echo "$input" | fzf
-    fi
+register_repos_to_zoxide() {
+    local ghq_root repos
+    ghq_root=$(ghq root)
+    repos=$(ghq list) || return 1
+
+    while IFS= read -r repo; do
+        zoxide add "$ghq_root/$repo"
+    done <<< "$repos"
 }
 
 #=============================================================================
@@ -47,10 +48,10 @@ cmd_help() {
     cat <<'EOF'
 Usage: zz [command] [args]
 
-ghq + zellij with fuzzy finder
+ghq + zellij + zoxide session manager
 
 Commands:
-  [query]           Select repo from ghq list → zellij session
+  [query]           Select repo with zoxide (frecency-based) → zellij session
   get <url>         Clone repo (alias for ghq get)
   list, ls [-s]     List repos (or sessions only with -s)
   delete, d [q]     Delete zellij session
@@ -61,7 +62,7 @@ Flags:
   -h, --help        Show this help
 
 Examples:
-  zz             # fzf select repo → zellij session
+  zz             # interactive select repo (zoxide + fzf) → zellij session
   zz myrepo      # filter repos by "myrepo"
   zz ls          # list all repos with session status
   zz ls -s       # list existing sessions only
@@ -74,26 +75,33 @@ EOF
 cmd_default() {
     [[ -n "${ZELLIJ:-}" ]] && die "cannot switch sessions from inside zellij. Detach first with Ctrl+o d"
 
-    local repos repo repo_path session_name
+    local repo_path session_name ghq_root
 
     if [[ "$session_only" == true ]]; then
         local sessions session
         sessions=$(list_zz_sessions)
         [[ -z "$sessions" ]] && die "No zz sessions found."
 
-        session=$(fzf_select "$sessions" "$*") || exit 1
+        if [[ -n "$*" ]]; then
+            session=$(echo "$sessions" | fzf --filter "$*" | head -n 1)
+        else
+            session=$(echo "$sessions" | fzf)
+        fi
         [[ -z "$session" ]] && die "No match found for: $*"
 
         zellij attach "$session"
     else
-        repos=$(ghq list) || die "ghq list failed"
-        [[ -z "$repos" ]] && die "No repositories found. Use 'ghq get <url>' to clone one."
+        # Register all ghq repos to zoxide
+        register_repos_to_zoxide || die "Failed to register repositories"
 
-        repo=$(fzf_select "$repos" "$*") || exit 1
-        [[ -z "$repo" ]] && die "Repository not found: $*"
+        # Use zi (zoxide interactive) to select repo
+        repo_path=$(zi "$@") || die "No repository selected"
+        [[ -z "$repo_path" ]] && die "No repository selected"
 
-        repo_path=$(ghq root)/"$repo"
-        session_name="zz:${repo//\//.}"
+        # Extract repo name from path for session naming
+        ghq_root=$(ghq root)
+        repo_name=${repo_path#"$ghq_root"/}
+        session_name="zz:${repo_name//\//.}"
 
         open_zellij_session "$session_name" "$repo_path"
     fi
@@ -149,7 +157,11 @@ cmd_delete() {
             echo "Deleted session: $session"
         done
     else
-        session=$(fzf_select "$sessions" "${1:-}") || exit 1
+        if [[ -n "${1:-}" ]]; then
+            session=$(echo "$sessions" | fzf --filter "$1" | head -n 1)
+        else
+            session=$(echo "$sessions" | fzf)
+        fi
         [[ -z "$session" ]] && die "No match found for: ${1:-}"
 
         zellij kill-session "$session"
