@@ -75,36 +75,37 @@ EOF
 cmd_default() {
     [[ -n "${ZELLIJ:-}" ]] && die "cannot switch sessions from inside zellij. Detach first with Ctrl+o d"
 
-    local repo_path session_name ghq_root
+    local repo_path session_name ghq_root repo_name
+
+    ghq_root=$(ghq root)
 
     if [[ "$session_only" == true ]]; then
-        local sessions session
+        # Get existing sessions and register their paths to zoxide
+        local sessions
         sessions=$(list_zz_sessions)
         [[ -z "$sessions" ]] && die "No zz sessions found."
 
-        if [[ -n "$*" ]]; then
-            session=$(echo "$sessions" | fzf --filter "$*" | head -n 1)
-        else
-            session=$(echo "$sessions" | fzf)
-        fi
-        [[ -z "$session" ]] && die "No match found for: $*"
-
-        zellij attach "$session"
+        # Convert session names back to paths and register to zoxide
+        while read -r session; do
+            # zz:github.com.user.repo -> github.com/user/repo
+            repo_name=${session#zz:}
+            repo_name=${repo_name//.//}
+            zoxide add "$ghq_root/$repo_name"
+        done <<< "$sessions"
     else
         # Register all ghq repos to zoxide
         register_repos_to_zoxide || die "Failed to register repositories"
-
-        # Use zi (zoxide interactive) to select repo
-        repo_path=$(zi "$@") || die "No repository selected"
-        [[ -z "$repo_path" ]] && die "No repository selected"
-
-        # Extract repo name from path for session naming
-        ghq_root=$(ghq root)
-        repo_name=${repo_path#"$ghq_root"/}
-        session_name="zz:${repo_name//\//.}"
-
-        open_zellij_session "$session_name" "$repo_path"
     fi
+
+    # Use zi (zoxide interactive) to select repo
+    repo_path=$(zi "$@") || die "No repository selected"
+    [[ -z "$repo_path" ]] && die "No repository selected"
+
+    # Extract repo name from path for session naming
+    repo_name=${repo_path#"$ghq_root"/}
+    session_name="zz:${repo_name//\//.}"
+
+    open_zellij_session "$session_name" "$repo_path"
 }
 
 cmd_ls() {
@@ -146,7 +147,7 @@ cmd_ls() {
 }
 
 cmd_delete() {
-    local sessions session
+    local sessions session ghq_root repo_path repo_name session_name
 
     sessions=$(list_zz_sessions)
     [[ -z "$sessions" ]] && die "No zz sessions found."
@@ -157,15 +158,25 @@ cmd_delete() {
             echo "Deleted session: $session"
         done
     else
-        if [[ -n "${1:-}" ]]; then
-            session=$(echo "$sessions" | fzf --filter "$1" | head -n 1)
-        else
-            session=$(echo "$sessions" | fzf)
-        fi
-        [[ -z "$session" ]] && die "No match found for: ${1:-}"
+        ghq_root=$(ghq root)
 
-        zellij kill-session "$session"
-        echo "Deleted session: $session"
+        # Convert session names back to paths and register to zoxide
+        while read -r session; do
+            repo_name=${session#zz:}
+            repo_name=${repo_name//.//}
+            zoxide add "$ghq_root/$repo_name"
+        done <<< "$sessions"
+
+        # Use zi (zoxide interactive) to select repo
+        repo_path=$(zi "${1:-}") || die "No repository selected"
+        [[ -z "$repo_path" ]] && die "No repository selected"
+
+        # Extract repo name from path for session naming
+        repo_name=${repo_path#"$ghq_root"/}
+        session_name="zz:${repo_name//\//.}"
+
+        zellij kill-session "$session_name"
+        echo "Deleted session: $session_name"
     fi
 }
 
