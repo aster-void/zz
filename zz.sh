@@ -55,7 +55,7 @@ select_repo() {
     if [[ $# -gt 0 ]]; then
         repo_path=$(zoxide query "$@") || die "No repository matched"
     else
-        repo_path=$(zi) || die "No repository selected"
+        repo_path=$(zoxide query -i) || die "No repository selected"
     fi
     [[ -z "$repo_path" ]] && die "No repository selected"
     echo "$repo_path"
