@@ -12,21 +12,26 @@ die() {
     exit 1
 }
 
-# Full path -> session name
-path_to_session() {
-    local repo=${1#"$GHQ_ROOT"/}
-    echo "zz:${repo//\//.}"
+# List all repo paths (absolute)
+list_repos() {
+    ghq list | while read -r r; do echo "$GHQ_ROOT/$r"; done
 }
 
-# Session name -> full path (O(n) lookup via ghq list)
-session_to_path() {
+# Full path -> session name
+path_to_session() {
+    local path=${1#"$GHQ_ROOT"/}
+    echo "zz:${path//\//.}"
+}
+
+# Session name -> full path (O(n) lookup via list_repos)
+lookup_path_from_session() {
     local session=${1#zz:}
-    while IFS= read -r repo; do
-        if [[ "${repo//\//.}" == "$session" ]]; then
-            echo "$GHQ_ROOT/$repo"
+    while IFS= read -r repo_path; do
+        if [[ "$(path_to_session "$repo_path")" == "zz:$session" ]]; then
+            echo "$repo_path"
             return 0
         fi
-    done < <(ghq list)
+    done < <(list_repos)
     return 1
 }
 
@@ -37,12 +42,12 @@ select_repo() {
         [[ -z "$sessions" ]] && die "No zz sessions found."
         while read -r session; do
             local repo_path
-            repo_path=$(session_to_path "$session") || continue
+            repo_path=$(lookup_path_from_session "$session") || continue
             zoxide add --score 0 "$repo_path" 2>/dev/null
         done <<< "$sessions"
     else
-        ghq list | while read -r repo; do
-            zoxide add --score 0 "$GHQ_ROOT/$repo"
+        list_repos | while read -r repo_path; do
+            zoxide add --score 0 "$repo_path"
         done
     fi
 
@@ -137,12 +142,12 @@ cmd_ls() {
         local session_name repo_path
         while read -r line; do
             session_name=${line%% *}
-            repo_path=$(session_to_path "$session_name") || continue
+            repo_path=$(lookup_path_from_session "$session_name") || continue
             print_repo "$repo_path"
         done <<< "$sessions_full"
     else
-        ghq list | while read -r repo; do
-            print_repo "$GHQ_ROOT/$repo"
+        list_repos | while read -r repo_path; do
+            print_repo "$repo_path"
         done
     fi
 }
