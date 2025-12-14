@@ -159,16 +159,14 @@ cmd_delete() {
 
     if [[ "$DELETE_ALL" == true ]]; then
         while read -r session; do
-            zellij kill-session "$session"
+            zellij delete-session -f "$session"
             echo "Deleted session: $session"
         done <<< "$sessions"
     else
-        SESSION_ONLY=true
-        local repo_path session_name
-        repo_path=$(select_repo "$@")
-        session_name=$(path_to_session "$repo_path")
-        zellij kill-session "$session_name"
-        echo "Deleted session: $session_name"
+        local session
+        session=$(echo "$sessions" | fzf --prompt="Delete session: " -1 -q "$*") || die "No session selected"
+        zellij delete-session -f "$session"
+        echo "Deleted session: $session"
     fi
 }
 
