@@ -36,23 +36,15 @@ lookup_path_from_session() {
 }
 
 select_repo() {
+    local repo_path
     if [[ "$SESSION_ONLY" == true ]]; then
         local sessions
         sessions=$(list_zz_sessions)
         [[ -z "$sessions" ]] && die "No zz sessions found."
-        while read -r session; do
-            local repo_path
-            repo_path=$(lookup_path_from_session "$session") || continue
-            zoxide add --score 0 "$repo_path" 2>/dev/null
-        done <<< "$sessions"
-    else
-        list_repos | while read -r repo_path; do
-            zoxide add --score 0 "$repo_path"
-        done
-    fi
-
-    local repo_path
-    if [[ $# -gt 0 ]]; then
+        local session
+        session=$(echo "$sessions" | fzf --prompt="Session: " -1 -q "$*") || die "No session selected"
+        repo_path=$(lookup_path_from_session "$session") || die "Session path not found"
+    elif [[ $# -gt 0 ]]; then
         repo_path=$(zoxide query "$@") || die "No repository matched"
     else
         repo_path=$(zoxide query -i) || die "No repository selected"
@@ -82,6 +74,13 @@ open_zellij_session() {
 # Commands
 #=============================================================================
 
+cmd_init() {
+    list_repos | while read -r repo_path; do
+        zoxide add "$repo_path"
+    done
+    echo "Registered $(ghq list | wc -l) repos to zoxide"
+}
+
 cmd_help() {
     cat <<'EOF'
 Usage: zz [command] [args]
@@ -90,6 +89,7 @@ ghq + zellij + zoxide session manager
 
 Commands:
   [query]           Select repo with zoxide (frecency-based) → zellij session
+  init              Register all ghq repos to zoxide db
   query [q]         Print the full path of the selected repo
   get <url>         Clone repo (alias for ghq get)
   list, ls [-s]     List repos (or sessions only with -s)
@@ -206,8 +206,18 @@ if [[ "$SHOW_HELP" == true ]]; then
     exit 0
 fi
 
+cmd_get() {
+    local before after new_repo
+    before=$(ghq list)
+    ghq get "$@"
+    after=$(ghq list)
+    new_repo=$(comm -13 <(echo "$before") <(echo "$after") | head -1)
+    [[ -n "$new_repo" ]] && zoxide add "$GHQ_ROOT/$new_repo"
+}
+
 case "${1:-}" in
-    get)           shift; ghq get "$@" ;;
+    init)          cmd_init ;;
+    get)           shift; cmd_get "$@" ;;
     query)         shift; select_repo "$@" ;;
     list|ls)       cmd_ls ;;
     delete|d)      shift; cmd_delete "$@" ;;
