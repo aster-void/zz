@@ -192,6 +192,7 @@ for arg in "$@"; do
             -h|--help) SHOW_HELP=true ;;
             -s|--session) SESSION_ONLY=true ;;
             -a|--all) DELETE_ALL=true ;;
+            get) args+=("$arg"); parse_flags=false ;;
             -*) die "Unknown flag: $arg" ;;
             *) args+=("$arg") ;;
         esac
