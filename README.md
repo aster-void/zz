@@ -31,6 +31,8 @@ export PATH="$PATH:$(ghq root)/github.com/aster-void/zz"
 
 ```bash
 zz [query...]     # Select repo → open/attach zellij session
+zz a, attach [q]  # Explicit attach (alias for default)
+zz init           # Register all ghq repos to zoxide
 zz -s, --session  # Select from existing sessions only
 zz get <url>      # Clone repo (alias for ghq get)
 zz list, ls       # List repos with session status
@@ -42,8 +44,8 @@ zz -h, --help     # Show help
 
 ## How It Works
 
-1. `zz` registers all ghq repositories to zoxide's database
-2. You select a repository using `zi` (zoxide's interactive selector with fzf)
+1. Run `zz init` to register all ghq repositories to zoxide's database
+2. You select a repository using zoxide's interactive selector with fzf
 3. Frequently/recently used repos appear first (smart frecency scoring)
 4. zz creates/attaches a zellij session named `zz:{owner}.{repo}`
 5. The session's working directory is set to the repository
@@ -51,11 +53,17 @@ zz -h, --help     # Show help
 ## Examples
 
 ```bash
+# Initialize zoxide with all ghq repos (run once after install)
+zz init
+
 # Clone a new repository
 zz get https://github.com/user/project
 
 # Interactive repo selection (frecency-sorted)
 zz
+
+# Explicit attach command
+zz attach project
 
 # Quick jump to repos matching "project"
 zz project

@@ -89,6 +89,7 @@ ghq + zellij + zoxide session manager
 
 Commands:
   [query]           Select repo with zoxide (frecency-based) → zellij session
+  a, attach [q]     Alias for default (explicit attach)
   init              Register all ghq repos to zoxide db
   query [q]         Print the full path of the selected repo
   get <url>         Clone repo (alias for ghq get)
@@ -222,5 +223,6 @@ case "${1:-}" in
     query)         shift; select_repo "$@" ;;
     list|ls)       cmd_ls ;;
     delete|d)      shift; cmd_delete "$@" ;;
+    a|attach)      shift; cmd_default "$@" ;;
     *)             cmd_default "$@" ;;
 esac
