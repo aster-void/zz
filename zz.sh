@@ -32,6 +32,13 @@ list_session_repos() {
     done <<< "$sessions"
 }
 
+# List session repos ordered by zoxide frecency
+list_session_repos_by_frecency() {
+    local session_repos
+    session_repos=$(list_session_repos) || return 1
+    list_repos_by_frecency "$@" | grep -xFf <(echo "$session_repos") || true
+}
+
 # Full path -> session name
 path_to_session() {
     local path=${1#"$GHQ_ROOT"/}
@@ -53,9 +60,7 @@ lookup_path_from_session() {
 select_repo() {
     local filtered
     if [[ "$SESSION_ONLY" == true ]]; then
-        local session_repos
-        session_repos=$(list_session_repos) || die "No zz sessions found."
-        filtered=$(list_repos_by_frecency "$@" | grep -xFf <(echo "$session_repos") || true)
+        filtered=$(list_session_repos_by_frecency "$@") || die "No zz sessions found."
     else
         filtered=$(list_repos_by_frecency "$@")
     fi
