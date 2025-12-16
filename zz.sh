@@ -36,33 +36,27 @@ lookup_path_from_session() {
 }
 
 select_repo() {
-    local repo_path
+    local repo_path candidates
+
     if [[ "$SESSION_ONLY" == true ]]; then
         local sessions
         sessions=$(list_zz_sessions)
         [[ -z "$sessions" ]] && die "No zz sessions found."
-        if [[ $# -gt 0 ]]; then
-            repo_path=$(zoxide query "$@") || die "No repository matched"
-            local session
-            session=$(path_to_session "$repo_path")
-            grep -qxF "$session" <<< "$sessions" || die "No session for matched repository"
-        else
-            # Build set of paths with sessions, then filter zoxide list
-            local session_paths
-            session_paths=$(while read -r s; do
-                lookup_path_from_session "$s" 2>/dev/null
-            done <<< "$sessions")
-            repo_path=$(zoxide query -l | grep -xFf <(echo "$session_paths") | fzf --prompt="Session: " -1) || die "No session selected"
-        fi
+        candidates=$(while read -r s; do
+            lookup_path_from_session "$s" 2>/dev/null
+        done <<< "$sessions")
     else
-        if [[ $# -gt 0 ]]; then
-            repo_path=$(zoxide query "$@") || die "No repository matched"
-            grep -qxF "$repo_path" <(list_repos) || die "Not a ghq repository: $repo_path"
-        else
-            repo_path=$(zoxide query -l | grep -xFf <(list_repos) | fzf --prompt="Repo: " -1) || die "No repository selected"
-        fi
+        candidates=$(list_repos)
     fi
-    [[ -z "$repo_path" ]] && die "No repository selected"
+
+    if [[ $# -gt 0 ]]; then
+        repo_path=$(zoxide query "$@") || die "No repository matched"
+        grep -qxF "$repo_path" <<< "$candidates" || die "No match in ${SESSION_ONLY:+sessions}${SESSION_ONLY:-repos}: $repo_path"
+    else
+        local prompt="${SESSION_ONLY:+Session}${SESSION_ONLY:-Repo}: "
+        repo_path=$(zoxide query -l | grep -xFf <(echo "$candidates") | fzf --prompt="$prompt" -1) || die "No selection"
+    fi
+
     echo "$repo_path"
 }
 
