@@ -55,7 +55,12 @@ select_repo() {
             repo_path=$(zoxide query -l | grep -xFf <(echo "$session_paths") | fzf --prompt="Session: " -1) || die "No session selected"
         fi
     else
-        repo_path=$(zoxide query -l | grep -xFf <(list_repos) | fzf --prompt="Repo: " -1 ${*:+-q "$*"}) || die "No repository selected"
+        if [[ $# -gt 0 ]]; then
+            repo_path=$(zoxide query "$@") || die "No repository matched"
+            grep -qxF "$repo_path" <(list_repos) || die "Not a ghq repository: $repo_path"
+        else
+            repo_path=$(zoxide query -l | grep -xFf <(list_repos) | fzf --prompt="Repo: " -1) || die "No repository selected"
+        fi
     fi
     [[ -z "$repo_path" ]] && die "No repository selected"
     echo "$repo_path"
@@ -122,7 +127,7 @@ Examples:
 EOF
 }
 
-cmd_default() {
+cmd_attach() {
     [[ -n "${ZELLIJ:-}" ]] && die "cannot switch sessions from inside zellij. Detach first with Ctrl+o d"
     local repo_path
     repo_path=$(select_repo "$@")
@@ -231,6 +236,6 @@ case "${1:-}" in
     query)         shift; select_repo "$@" ;;
     list|ls)       cmd_ls ;;
     delete|d)      shift; cmd_delete "$@" ;;
-    a|attach)      shift; cmd_default "$@" ;;
-    *)             cmd_default "$@" ;;
+    a|attach)      shift; cmd_attach "$@" ;;
+    *)             cmd_attach "$@" ;;
 esac
