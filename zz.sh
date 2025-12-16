@@ -17,6 +17,21 @@ list_repos() {
     ghq list | while read -r r; do echo "$GHQ_ROOT/$r"; done
 }
 
+# List repos ordered by zoxide frecency, filtered to ghq repos only
+list_repos_by_frecency() {
+    zoxide query -l "$@" | grep -xFf <(list_repos) || true
+}
+
+# List repos that have active zz sessions
+list_session_repos() {
+    local sessions
+    sessions=$(list_zz_sessions)
+    [[ -z "$sessions" ]] && return 1
+    while read -r s; do
+        lookup_path_from_session "$s" 2>/dev/null
+    done <<< "$sessions"
+}
+
 # Full path -> session name
 path_to_session() {
     local path=${1#"$GHQ_ROOT"/}
@@ -36,23 +51,17 @@ lookup_path_from_session() {
 }
 
 select_repo() {
-    local repo_path candidates
-
-    if [[ "$SESSION_ONLY" == true ]]; then
-        local sessions
-        sessions=$(list_zz_sessions)
-        [[ -z "$sessions" ]] && die "No zz sessions found."
-        candidates=$(while read -r s; do
-            lookup_path_from_session "$s" 2>/dev/null
-        done <<< "$sessions")
-    else
-        candidates=$(list_repos)
-    fi
-
     local filtered
-    filtered=$(zoxide query -l "$@" | grep -xFf <(echo "$candidates") || true)
+    if [[ "$SESSION_ONLY" == true ]]; then
+        local session_repos
+        session_repos=$(list_session_repos) || die "No zz sessions found."
+        filtered=$(list_repos_by_frecency "$@" | grep -xFf <(echo "$session_repos") || true)
+    else
+        filtered=$(list_repos_by_frecency "$@")
+    fi
     [[ -z "$filtered" ]] && die "No match"
 
+    local repo_path
     if [[ $# -gt 0 ]]; then
         repo_path=$(head -1 <<< "$filtered")
     else
@@ -147,19 +156,16 @@ cmd_ls() {
         fi
     }
 
+    local repos
     if [[ "$SESSION_ONLY" == true ]]; then
-        [[ -z "$sessions_full" ]] && die "No zz sessions found."
-        local session_name repo_path
-        while read -r line; do
-            session_name=${line%% *}
-            repo_path=$(lookup_path_from_session "$session_name") || continue
-            print_repo "$repo_path"
-        done <<< "$sessions_full"
+        repos=$(list_session_repos) || die "No zz sessions found."
     else
-        list_repos | while read -r repo_path; do
-            print_repo "$repo_path"
-        done
+        repos=$(list_repos)
     fi
+
+    while read -r repo_path; do
+        print_repo "$repo_path"
+    done <<< "$repos"
 }
 
 cmd_delete() {
