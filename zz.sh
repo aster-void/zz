@@ -50,8 +50,8 @@ select_repo() {
     fi
 
     if [[ $# -gt 0 ]]; then
-        repo_path=$(zoxide query "$@") || die "No repository matched"
-        grep -qxF "$repo_path" <<< "$candidates" || die "No match in ${SESSION_ONLY:+sessions}${SESSION_ONLY:-repos}: $repo_path"
+        repo_path=$(zoxide query -l "$@" | grep -xFf <(echo "$candidates") | head -1 || true)
+        [[ -z "$repo_path" ]] && die "No repository matched"
     else
         local prompt="${SESSION_ONLY:+Session}${SESSION_ONLY:-Repo}: "
         repo_path=$(zoxide query -l | grep -xFf <(echo "$candidates") | fzf --prompt="$prompt" -1) || die "No selection"
