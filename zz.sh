@@ -55,7 +55,7 @@ select_repo() {
             repo_path=$(zoxide query -l | grep -xFf <(echo "$session_paths") | fzf --prompt="Session: " -1) || die "No session selected"
         fi
     else
-        repo_path=$(zoxide query -l | grep "^$GHQ_ROOT/" | fzf --prompt="Repo: " -1 ${*:+-q "$*"}) || die "No repository selected"
+        repo_path=$(zoxide query -l | grep -xFf <(list_repos) | fzf --prompt="Repo: " -1 ${*:+-q "$*"}) || die "No repository selected"
     fi
     [[ -z "$repo_path" ]] && die "No repository selected"
     echo "$repo_path"
