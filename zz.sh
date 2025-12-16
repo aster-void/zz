@@ -70,7 +70,9 @@ select_repo() {
     if [[ $# -gt 0 ]]; then
         repo_path=$(head -1 <<< "$filtered")
     else
-        repo_path=$(fzf --prompt="${SESSION_ONLY:+Session: }${SESSION_ONLY:-Repo: }" -1 <<< "$filtered") || die "No selection"
+        local prompt="Repo: "
+        [[ "$SESSION_ONLY" == true ]] && prompt="Session: "
+        repo_path=$(fzf --prompt="$prompt" -1 <<< "$filtered") || die "No selection"
     fi
 
     echo "$repo_path"
