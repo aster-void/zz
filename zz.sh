@@ -165,7 +165,7 @@ cmd_ls() {
     if [[ "$SESSION_ONLY" == true ]]; then
         repos=$(list_session_repos) || die "No zz sessions found."
     else
-        repos=$(list_repos)
+        repos=$(list_repos) || die "No repositories found."
     fi
 
     while read -r repo_path; do
