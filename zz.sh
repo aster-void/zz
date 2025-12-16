@@ -41,13 +41,21 @@ select_repo() {
         local sessions
         sessions=$(list_zz_sessions)
         [[ -z "$sessions" ]] && die "No zz sessions found."
-        local session
-        session=$(echo "$sessions" | fzf --prompt="Session: " -1 -q "$*") || die "No session selected"
-        repo_path=$(lookup_path_from_session "$session") || die "Session path not found"
-    elif [[ $# -gt 0 ]]; then
-        repo_path=$(zoxide query "$@") || die "No repository matched"
+        if [[ $# -gt 0 ]]; then
+            repo_path=$(zoxide query "$@") || die "No repository matched"
+            local session
+            session=$(path_to_session "$repo_path")
+            grep -qxF "$session" <<< "$sessions" || die "No session for matched repository"
+        else
+            # Build set of paths with sessions, then filter zoxide list
+            local session_paths
+            session_paths=$(while read -r s; do
+                lookup_path_from_session "$s" 2>/dev/null
+            done <<< "$sessions")
+            repo_path=$(zoxide query -l | grep -xFf <(echo "$session_paths") | fzf --prompt="Session: " -1) || die "No session selected"
+        fi
     else
-        repo_path=$(zoxide query -i) || die "No repository selected"
+        repo_path=$(zoxide query -l | grep "^$GHQ_ROOT/" | fzf --prompt="Repo: " -1 ${*:+-q "$*"}) || die "No repository selected"
     fi
     [[ -z "$repo_path" ]] && die "No repository selected"
     echo "$repo_path"
