@@ -234,9 +234,9 @@ fi
 
 cmd_get() {
     local before after new_repo
-    before=$(ghq list)
+    before=$(ghq list | sort)
     ghq get "$@"
-    after=$(ghq list)
+    after=$(ghq list | sort)
     new_repo=$(comm -13 <(echo "$before") <(echo "$after") | head -1)
     [[ -n "$new_repo" ]] && zoxide add "$GHQ_ROOT/$new_repo"
 }
