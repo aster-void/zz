@@ -35,8 +35,8 @@ zz a, attach [q]  # Explicit attach (alias for default)
 zz init           # Register all ghq repos to zoxide
 zz -s, --session  # Select from existing sessions only
 zz get <url>      # Clone repo (alias for ghq get)
-zz list, ls       # List repos with session status
-zz ls -s          # List existing sessions only
+zz list, ls       # List existing sessions
+zz ls -a, --all   # List all repos with session status
 zz delete, d [q]  # Delete zellij session
 zz d -a, --all    # Delete all zz sessions
 zz -h, --help     # Show help
@@ -71,11 +71,11 @@ zz project
 # Match with multiple terms
 zz user project
 
-# List all repos with session status
+# List existing sessions
 zz list
 
-# List existing sessions only
-zz ls -s
+# List all repos with session status
+zz ls -a
 
 # Select from existing sessions
 zz -s
