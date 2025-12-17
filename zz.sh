@@ -118,7 +118,8 @@ Commands:
   init              Register all ghq repos to zoxide db
   query [q]         Print the full path of the selected repo
   get <url>         Clone repo (alias for ghq get)
-  list, ls [-s]     List repos (or sessions only with -s)
+  list, ls          List existing zz sessions
+  list -a, --all    List all repos with session status
   delete, d [q]     Delete zellij session
   delete -a, --all  Delete all zz sessions
 
@@ -131,8 +132,8 @@ Examples:
   zz myrepo      # filter repos by "myrepo"
   zz query       # print selected repo path
   zz query foo   # print path of repo matching "foo"
-  zz ls          # list all repos with session status
-  zz ls -s       # list existing sessions only
+  zz ls          # list existing sessions
+  zz ls -a       # list all repos with session status
   zz -s          # select from existing sessions
   zz d myrepo    # delete session matching "myrepo"
   zz d -a        # delete all zz sessions
@@ -164,10 +165,10 @@ cmd_ls() {
     }
 
     local repos
-    if [[ "$SESSION_ONLY" == true ]]; then
-        repos=$(list_session_repos) || die "No zz sessions found."
-    else
+    if [[ "$LIST_ALL" == true ]]; then
         repos=$(list_repos) || die "No repositories found."
+    else
+        repos=$(list_session_repos) || die "No zz sessions found."
     fi
 
     while read -r repo_path; do
@@ -204,6 +205,7 @@ GREEN='\033[32m' RED='\033[31m' RESET='\033[0m'
 # Global flags
 SHOW_HELP=false
 SESSION_ONLY=false
+LIST_ALL=false
 DELETE_ALL=false
 
 args=()
@@ -214,7 +216,7 @@ for arg in "$@"; do
             --) parse_flags=false ;;
             -h|--help) SHOW_HELP=true ;;
             -s|--session) SESSION_ONLY=true ;;
-            -a|--all) DELETE_ALL=true ;;
+            -a|--all) LIST_ALL=true; DELETE_ALL=true ;;
             get) args+=("$arg"); parse_flags=false ;;
             -*) die "Unknown flag: $arg" ;;
             *) args+=("$arg") ;;
