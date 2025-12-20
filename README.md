@@ -15,9 +15,8 @@ Select a repository interactively, and zz opens (or attaches to) a dedicated zel
 ## Installation
 
 ```bash
-# Clone and add to PATH
-ghq get https://github.com/aster-void/zz
-export PATH="$PATH:$(ghq root)/github.com/aster-void/zz"
+curl -fLo ~/.local/bin/zz https://raw.githubusercontent.com/aster-void/zz/main/zz.sh
+chmod +x ~/.local/bin/zz
 ```
 
 ## Dependencies
